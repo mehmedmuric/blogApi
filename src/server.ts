@@ -1,1 +1,77 @@
-console.log("Hello World");
+import express from 'express';
+import cors from 'cors';
+import type { CorsOptions } from 'cors';
+import cookieParser from 'cookie-parser';
+import compression from 'compression';
+import helmet from 'helmet';
+
+import config from '@/config';
+import limiter from '@/lib/express_rate_limit';
+
+
+import v1Routes from '@/routes/v1';
+
+
+const app = express();
+
+const corsOptions: CorsOptions = {
+    origin(origin, callback){
+        if(config.NODE_ENV === 'development' || !origin || config.WHITELIST_ORIGINS.includes(origin || '')){
+            callback(null, true);
+            
+        } else {
+            callback(new Error('Not allowed by CORS'), false);
+            console.log(`Blocked CORS request from origin: ${origin}`);
+        }
+}};
+
+
+app.use(cors(corsOptions));
+
+app.use(express.json());
+
+app.use(express.urlencoded({ extended: true }));
+
+app.use(cookieParser());
+app.use(
+    compression({
+        threshold: 1024,
+    })
+);
+
+app.use(helmet());
+
+
+app.use(limiter);
+
+(async () => {
+    try {
+        app.use('/api/v1', v1Routes);
+
+        app.listen(config.PORT, () => {
+            console.log(`Server is running on port ${config.PORT}`);
+        });
+    } catch (error) {
+        console.error('Error starting server:', error);
+
+        if(config.NODE_ENV === 'production'){
+            process.exit(1);
+        }
+    }
+})();
+
+
+
+
+const handleServerShutdown = async () => {
+    try {
+        console.log('Shutting down server....');
+        process.exit(0);
+    } catch (error) {
+        console.error('Error during server shutdown:', error);
+    }
+}
+
+
+process.on('SIGTERM', handleServerShutdown);
+process.on('SIGINT', handleServerShutdown);
