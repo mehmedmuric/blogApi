@@ -1,6 +1,9 @@
 import { Schema, model } from 'mongoose';
 
 
+import bcrypt from 'bcrypt'
+
+
 
 
 export interface IUser {
@@ -33,11 +36,17 @@ const userSchema = new Schema<IUser>({
         required: [true, 'Email is required'],
         maxLength: [100, 'Email cannot exceed 100 characters'],
         unique: [true, 'Email already exists'],
+        lowercase: true, // Stores the email in lowercase
+        validate: {
+            // Uses a regular expression to validate the email format
+            validator: (value) => /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(value),
+            message: 'Please enter a valid email address'
+        }
     },
     password: {
         type: String,
         required: [true, 'Password is required'],
-        minLength: [6, 'Password must be at least 6 characters long'],
+        minLength: [8, 'Password must be at least 6 characters long'],
         select: false, // Exclude password from query results by default
     },
     role: {
@@ -88,6 +97,15 @@ const userSchema = new Schema<IUser>({
 }, {
     timestamps: true,   
 });
+
+
+userSchema.pre('save', async function () {
+    if(!this.isModified('password')){
+        return;
+    }
+
+    this.password = await bcrypt.hash(this.password, 10);
+})
 
 
 export default model<IUser>('User', userSchema);
