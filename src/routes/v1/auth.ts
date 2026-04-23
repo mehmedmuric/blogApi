@@ -6,9 +6,11 @@ import bcrypt from 'bcrypt';
 import register from '@/controllers/v1/auth/register';
 import login from '@/controllers/v1/auth/login';
 import refreshToken from '@/controllers/v1/auth/refresh_token';
+import logout from '@/controllers/v1/auth/logout';
 
 
 import validationError from '@/middlewares/validationError';
+import authenticate from '@/middlewares/authenticate';
 
 
 import User from '@/models/user';
@@ -87,14 +89,20 @@ router.post('/login',
      login
 );
 
-router.post(
-    '/refresh-token', 
+router.post('/refresh-token', 
     cookie('refreshToken')
     .notEmpty()
     .withMessage('Refresh token is required')
     .isJWT()
     .withMessage('Invalid refresh token'),
     validationError,
-    refreshToken);
+    refreshToken
+);
+
+
+router.post('/logout', 
+    authenticate,
+    logout
+);
 
 export default router;

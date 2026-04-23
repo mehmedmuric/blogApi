@@ -14,8 +14,8 @@ type UserData = Pick<IUser, 'email' | 'password'>;
 const login = async (req: Request, res: Response): Promise<void> => {
     try {
         const { email } = req.body as UserData;
-        const user = await User.findOne({ email})
-        .select('usernam email password role')
+        const user = await User.findOne({ email })
+        .select('username email password role')
         .lean()
         .exec();
 
@@ -51,7 +51,7 @@ const login = async (req: Request, res: Response): Promise<void> => {
             },
             accessToken
         });
-        logger.info('User registered successfuly', {
+        logger.info('User logged in successfuly', {
                 username: user.username,
                 email: user.email,
                 role: user.role,
