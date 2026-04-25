@@ -18,6 +18,8 @@ const config = {
         'mehmedmuric22@gmail.com',
         'mehmedmuric33@gmail.com'
     ],
+    defaultResLimit: 20,
+    defaultResOffset: 0,
 
 };
 

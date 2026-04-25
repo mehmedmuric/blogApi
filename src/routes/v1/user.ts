@@ -13,6 +13,9 @@ import User from '@/models/user';
 import getCurrentUser from '@/controllers/v1/user/get_current_user';
 import updateCurrentUser from '@/controllers/v1/user/update_current_user';
 import deleteCurrentUser from '@/controllers/v1/user/delete_current_user';
+import getAllUsers from '@/controllers/v1/user/get_all_users';
+import getUser from '@/controllers/v1/user/get_user';
+import deleteUser from '@/controllers/v1/user/delete_user';
 
 const router = Router();
 
@@ -81,6 +84,36 @@ router.delete(
     authorize(['admin', 'user']),
     deleteCurrentUser,
 );
+
+
+router.get(
+    '/',
+    authenticate,
+    authorize(['admin']),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit must be an integer between 1 and 100'),
+    query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be a non-negative integer'),
+    validationError,
+
+    getAllUsers
+);
+
+router.get(
+    '/:userId',
+    authenticate,
+    authorize(['admin']),
+    param('userId').notEmpty().withMessage('User ID is required').isMongoId().withMessage('Invalid User ID format'),
+    validationError,
+    getUser
+)
+
+router.delete(
+    '/:userId',
+    authenticate,
+    authorize(['admin']),
+    param('userId').notEmpty().withMessage('User ID is required').isMongoId().withMessage('Invalid User ID format'),
+    validationError,
+    deleteUser
+)
 
 
 export default router;
