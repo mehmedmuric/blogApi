@@ -1,0 +1,81 @@
+import DOMPurify from 'dompurify';
+import { JSDOM } from 'jsdom';
+
+import { logger } from '@/lib/winston';
+
+import Blog from '@/models/blog';
+import User from '@/models/user';
+
+import type { Request, Response } from 'express';
+import type { IBlog } from '@/models/blog';
+
+
+type BlogData = Partial<Pick<IBlog, 'title' | 'slug' | 'content' | 'banner' | 'status'>>
+
+
+
+const window = new JSDOM('').window;
+const purify = DOMPurify(window);
+
+
+const updateBlog = async (req: Request, res: Response): Promise<void> => {
+
+    try{
+       const { title, slug, content, banner, status } = req.body as BlogData;
+       const userId = req.userId;
+       const blogId = req.params.id;
+
+       const user = await User.findById(userId).select('role').lean().exec();  
+       const blog = await Blog.findById(blogId).select('-__v').lean().exec();
+
+       if(!blog){
+        res.status(404).json({
+            code: 'BLOG_NOT_FOUND',
+            message: 'Blog post not found',
+            status: 'error',
+        });
+        logger.warn('Blog post not found', { blogId });
+        return; 
+       }
+
+       if(blog.author !== userId && user?.role !== 'admin'){
+        res.status(403).json({
+            code: 'FORBIDDEN',
+            message: 'You do not have permission to update this blog post',
+            status: 'error',
+        });
+        logger.warn('Unauthorized update attempt', { userId, blogId });
+        return; 
+       }
+
+       if(title) blog.title = title;
+       if(content) {
+        const cleanContent = purify.sanitize(content);
+        blog.content = cleanContent;
+       }
+       if(banner) blog.banner = banner;
+       if(status) blog.status = status;
+
+      await Blog.findByIdAndUpdate(blogId, blog, { new: true });
+      logger.info('Blog post updated successfully', { blogId, userId });
+
+      res.status(200).json({
+        blog,
+      });
+    
+
+    } catch (err){
+        res.status(500).json({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An error occurred while updating the blog post',
+            status: 'error',
+        });
+        logger.error('Error while updating blog post', { err });
+        return; 
+    }
+
+}
+
+
+
+export default updateBlog;
