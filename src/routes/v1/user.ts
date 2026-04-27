@@ -2,8 +2,6 @@ import { Router } from 'express';
 import { param, query, body } from 'express-validator';
 
 
-
-
 import authorize from '@/middlewares/authorize';
 import authenticate from '@/middlewares/authenticate';
 import validationError from '@/middlewares/validationError';
